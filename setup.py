@@ -1,19 +1,18 @@
-"""HyperBO.
+"""GPax.
 
 See more details in the
-[`README.md`](https://github.com/google-research/hyperbo).
+[`README.md`](https://github.com/aglaws/gpax).
 """
 
 from setuptools import find_packages
 from setuptools import setup
 
 setup(
-    name='hyperbo',
+    name='gpax',
     version='0.0.1',
-    description='hyperbo',
-    author='HyperBO Team',
-    author_email='wangzi@google.com',
-    url='http://github.com/google-research/hyperbo',
+    description='gpax',
+    author='gpax Team',
+    url='http://github.com/aglaws/gpax',
     license='Apache 2.0',
     packages=find_packages(),
     install_requires=[
