@@ -1,6 +1,8 @@
 # GPax
 A codebase for Gaussian processes in Jax. 
 
+This is a fork of google-research/gpax, modified for use in [github.com/NLR-Theseus/assurance-uq](github.com/NLR-Theseus/assurance-uq).
+
 Disclaimer: This is not an officially supported Google product.
 
 ## Gaussian process probes (GPP)
@@ -58,14 +60,14 @@ We also implemented [classic acquisition functions](https://github.com/google-re
 ```
 
 ## Installation
-We recommend using Python 3.7 for stability.
+We recommend using Python 3.8 for stability.
 
-To install the latest development version inside a virtual environment, run
+To install inside a conda environment, run
 ```
-python3 -m venv env-pd
-source env-pd/bin/activate
-pip install --upgrade pip
-pip install "git+https://github.com/google-research/gpax.git#egg=gpax"
+conda env create -f environment.yaml
+conda activate <env-name>
+pip install -e .
 ```
+
 
 
