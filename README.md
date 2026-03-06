@@ -65,7 +65,7 @@ We recommend using Python 3.8 for stability.
 To install inside a conda environment, run
 ```
 conda env create -f environment.yaml
-conda activate <env-name>
+conda activate GPax
 pip install -e .
 ```
 
