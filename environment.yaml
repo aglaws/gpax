@@ -1,4 +1,4 @@
-name: GPax
+name: GPax-test
 channels:
   - conda-forge
   - defaults
