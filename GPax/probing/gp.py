@@ -270,6 +270,30 @@ def set_default_params(params, warp_func=None):
   return params
 
 
+def get_latent_observations_binomial(params, k, m, warp_func=None):
+  """Get latent observations of Beta GP.
+
+  Args:
+    params: dictionary mapping from parameter keys to values.
+    k: number of success per sample. n x 1.
+    m: number of trials per sample. n x 1.
+    warp_func: optional dictionary that specifies the warping function for each
+      parameter.
+
+  Returns:
+    y: latent function observation.
+    var: latent noise.
+  """
+  alpha_eps, strength = retrieve_params(
+      params, ['alpha_eps', 'strength'], warp_func=warp_func
+  )
+  alpha = (
+        jnp.ones((k.shape[0], 2)) * alpha_eps + jnp.hstack([k, m - k]) * strength
+    )
+  var, y = get_latent_var_mu(alpha)
+  return y, var
+
+
 def get_latent_observations(params, y, warp_func=None):
   """Get latent observations of Beta GP.
 
@@ -368,6 +392,69 @@ def gp_predict(
     sig = jnp.diag(jnp.ones((phi.shape[1],))) - jnp.dot(sig.T, sig)
     return mu, cov, u, sig
   return mu, cov
+
+
+def beta_gp_predict_binomial(
+    *,
+    mean_func,
+    cov_func,
+    params,
+    x_query,
+    x_observed=None,
+    k_observed=None,
+    m_observed=None,
+    warp_func=None,
+    var_only=True,
+):
+  """Predict Beta GP posterior using aggregated count observations.
+
+  Args:
+    mean_func: mean function handle that maps from (params, n x d input,
+      warp_func) to an n dimensional mean vector.
+    cov_func: covariance function handle that maps from (params, n1 x d input1,
+      n2 x d input2, wrap_func) to a n1 x n2  covariance matrix.
+    params: dictionary mapping from parameter keys to values.
+    x_query: n' x d input array to be queried.
+    x_observed: observed n x d input array.
+    k_observed: observed n x 1 number of successes for each input x_observed.
+    m_observed: observed n x 1 number of trials for each input x_observed.
+    warp_func: optional dictionary that specifies the warping function for each
+      parameter.
+    var_only: return variance only if True; otherwise return the full covariance
+      matrix.
+
+  Returns:
+    Predictions: a list of tuples. Each tuple is the posterior mean (n' x 1) and
+    (co)variance (n' x n' or n' x 1) for the two functions.
+  """
+  if k_observed is None or k_observed.shape[0] == 0 or m_observed is None or m_observed.shape[0] == 0:
+    y_latent, var_latent = None, None
+  else:
+    y_latent, var_latent = get_latent_observations_binomial(
+        params, k_observed, m_observed, warp_func=warp_func
+    )  # n x 2, n x 2
+  # hacky way of setting constant mean
+  params = set_default_params(params, warp_func=warp_func)
+  predictions = []
+  for i in range(2):
+    if y_latent is not None:
+      y_observed = y_latent[:, i:i+1]
+      var_observed = var_latent[:, i]
+    else:
+      y_observed, var_observed = None, None
+    mu_var = gp_predict(
+        mean_func=mean_func,
+        cov_func=cov_func,
+        params=params,
+        x_query=x_query,
+        x_observed=x_observed,
+        y_observed=y_observed,
+        var_observed=var_observed,
+        warp_func=warp_func,
+        var_only=var_only,
+    )
+    predictions.append(mu_var)
+  return predictions
 
 
 def beta_gp_predict(

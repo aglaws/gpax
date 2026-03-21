@@ -20,6 +20,65 @@ import jax
 import numpy as np
 import sklearn.linear_model as sklm
 
+@jax.jit
+def gpp_binomial(
+    x_query,
+    x_observed=None,
+    k_observed=None,
+    m_observed=None,
+    alpha_eps=0.1,
+    strength=5.0,
+    n=int(1e5),
+    seed=0,
+):
+  """Probing model representations with GPP for binomial.
+
+  Extension of approach in GPP paper: https://arxiv.org/pdf/2305.18213.pdf.
+
+  Args:
+    x_query: n' x d input array to be queried.
+    x_observed: observed n x d input array. Set to None if no observations.
+    k_observed: observed n x 1 number of successes for each input x_observed.
+    m_observed: observed n x 1 number of trials for each input x_observed.
+    alpha_eps: the episilon parameter in the Beta prior, i.e., the prior for
+      classification is Beta(alpha_eps, alpha_eps), which is then approximated
+      using log normal distributions. See Fig 9 in the GPP paper for
+      visualization of prior approximation. For example, if the prior you'd like
+      to set is Beta(1,1), you can set alpha_eps to be 0.5 to have a better
+      approximation.
+    strength: the s parameter in posterior inference, which defines how much you
+      believe the observation matters.     n: number of samples for Monte Carlo estimation.
+    seed: int random seed for Monte Carlo estimation.
+
+  Returns:
+    Dictionary mapping from name to measures of uncertainty.
+  """
+  mean_func = gp.constant_mean
+  cov_func = gp.cosine_kernel
+
+  params = {
+      'alpha_eps': alpha_eps,
+      'strength': strength,
+  }
+
+  # Ensure k and m are (n, 1) shaped
+  if k_observed is not None and k_observed.ndim == 1:
+    k_observed = k_observed[:, None]
+  if m_observed is not None and m_observed.ndim == 1:
+    m_observed = m_observed[:, None]
+
+  predictions = gp.beta_gp_predict_binomial(
+      mean_func=mean_func,
+      cov_func=cov_func,
+      x_query=x_query,
+      x_observed=x_observed,
+      k_observed=k_observed,
+      m_observed=m_observed,
+      params=params,
+  )
+
+  measures = gp.beta_gp_uncertainty(predictions, seed=seed, n=n)
+  return jax.tree_util.tree_map(lambda x: x[:, 0], measures)
 
 @jax.jit
 def gpp(
